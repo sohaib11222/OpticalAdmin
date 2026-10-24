@@ -17,8 +17,9 @@ const LanguageToggle = ({ variant = 'topbar', className }: { variant?: 'topbar' 
   return (
     <Dropdown className={inline ? className : `topbar-item ${className ?? ''}`} align="end">
       <DropdownToggle
+        variant={inline ? 'outline-secondary' : 'link'}
         id={inline ? 'language-toggle-modal' : 'language-toggle'}
-        className={inline ? 'btn btn-sm btn-outline-secondary d-flex align-items-center gap-1' : 'topbar-button content-none d-flex align-items-center gap-1'}
+        className={inline ? 'btn btn-sm btn-outline-secondary d-flex align-items-center gap-1' : 'topbar-button topbar-text-button content-none d-flex align-items-center gap-1'}
         aria-label={t('nav.changeLanguage')}
         title={t('nav.changeLanguage')}>
         <IconifyIcon icon="bx:globe" className={inline ? 'fs-16 align-middle' : 'fs-20 align-middle'} />

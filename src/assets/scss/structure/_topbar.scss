@@ -139,3 +139,15 @@ html[data-menu-size='hidden'] {
         }
     }
 }
+
+// Neutral text dropdowns, with accessible keyboard focus.
+.topbar .topbar-item .topbar-button.topbar-text-button {
+    border: 0;
+    border-radius: .5rem;
+    box-shadow: none;
+    text-decoration: none;
+    padding: .5rem .75rem;
+    &:hover, &.show { background-color: rgba(127, 127, 127, .1); }
+    &:focus { box-shadow: none; }
+    &:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+}

@@ -11,7 +11,7 @@ const ProfileDropdown = () => {
   return (
     <>
       <Dropdown className="topbar-item" align="end">
-        <DropdownToggle className="topbar-button content-none">{user?.name}</DropdownToggle>
+        <DropdownToggle variant="link" className="topbar-button topbar-text-button content-none">{user?.name}</DropdownToggle>
         <DropdownMenu>
           <DropdownHeader>{user?.email}</DropdownHeader>
           <DropdownItem as={Link} to="/account/security">

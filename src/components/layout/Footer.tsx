@@ -12,7 +12,7 @@ const Footer = () => {
           <Col xs={12} className="text-center">
             <span className="icons-center">
               {' '}
-              {currentYear} © Reback. {t('footer.craftedWith')}&nbsp;
+              {currentYear} © Vista Express 360. {t('footer.craftedWith')}&nbsp;
               <IconifyIcon icon="iconamoon:heart-duotone" className="fs-18 align-middle text-danger" />
               &nbsp;{t('footer.by')}&nbsp;
               <a href={developedByLink} className="fw-bold footer-text" target="_blank">

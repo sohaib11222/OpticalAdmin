@@ -77,7 +77,7 @@ const en = {
   "orders.kindSale": "Sales",
   "orders.kindReversal": "Reversals",
   "orders.ledgerNote":
-    "Optical Shop ledger · {timezone}. Vista Express orders are reported separately to avoid duplicate sales.",
+    "Vista Express 360 ledger · {timezone}. Vista Express orders are reported separately to avoid duplicate sales.",
   "orders.summarySales": "Sales {amount}",
   "orders.summaryReversals": "Reversals {amount}",
   "orders.summaryNet": "Net {amount}",

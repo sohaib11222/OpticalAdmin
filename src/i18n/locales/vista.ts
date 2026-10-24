@@ -14,7 +14,7 @@ const en = {
   "vista.disconnectConfirm":
     "Disconnect this shop from Vista Express? Pending publications must be resolved first.",
   "vista.authorizeOwner":
-    "The shop owner must authorize their seller account from Optical Shop → Vista Express. An administrator cannot enter or impersonate the seller's password.",
+    "The shop owner must authorize their seller account from Vista Express 360 → Vista Express. An administrator cannot enter or impersonate the seller's password.",
   "vista.sourceIdentity":
     "Vista records keep their source identity. Remote orders do not post local sales. Publication transfers only the chosen quantity and preserves independent local stock.",
 
@@ -129,7 +129,7 @@ const it = {
   "vista.disconnectConfirm":
     "Disconnettere questo negozio da Vista Express? Le pubblicazioni in sospeso devono prima essere risolte.",
   "vista.authorizeOwner":
-    "Il proprietario del negozio deve autorizzare il proprio account venditore da Optical Shop → Vista Express. Un amministratore non può inserire né usare la password del venditore.",
+    "Il proprietario del negozio deve autorizzare il proprio account venditore da Vista Express 360 → Vista Express. Un amministratore non può inserire né usare la password del venditore.",
   "vista.sourceIdentity":
     "I record Vista conservano la propria identità di origine. Gli ordini remoti non registrano vendite locali. La pubblicazione trasferisce solo la quantità scelta e mantiene indipendente la giacenza locale.",
 

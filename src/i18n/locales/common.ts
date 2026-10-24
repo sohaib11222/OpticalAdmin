@@ -1,9 +1,9 @@
 import type { LocaleModule } from "../types";
 
 const en = {
-  "app.name": "Optical Admin",
+  "app.name": "Vista Express 360 Admin",
   "app.tagline": "Secure platform administration",
-  "app.defaultTitle": "Optical Admin",
+  "app.defaultTitle": "Vista Express 360 Admin",
   "app.pleaseComeBack": "Please come back 🥺",
 
   "nav.changeLanguage": "Change language",
@@ -213,9 +213,9 @@ const en = {
 };
 
 const it = {
-  "app.name": "Optical Admin",
+  "app.name": "Vista Express 360 Admin",
   "app.tagline": "Amministrazione sicura della piattaforma",
-  "app.defaultTitle": "Optical Admin",
+  "app.defaultTitle": "Vista Express 360 Admin",
   "app.pleaseComeBack": "Torna presto 🥺",
 
   "nav.changeLanguage": "Cambia lingua",
