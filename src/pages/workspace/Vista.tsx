@@ -109,6 +109,8 @@ export default function Vista() {
                 expiry: formatDateTime(c.expires_at),
               })}
             </p>
+            {q.data?.data.processing?.worker_active === false && <Alert variant="warning">{t("vista.workerUnavailable")}</Alert>}
+            {!c.synced_at && <p role="status">{t("vista.initialSync")}</p>}
             {c.last_error && (
               <Alert variant="warning">{translateError(c.last_error)}</Alert>
             )}

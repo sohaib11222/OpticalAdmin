@@ -75,11 +75,11 @@ export default function AuthPage({ mode }: { mode: 'login' | 'forgot' | 'reset' 
   return (
     <Row className="justify-content-center">
       <PageTitle title={t(headingKey)} />
-      <Col md={8} lg={5}>
+      <Col xs={12}>
         <Card>
           <CardBody className="p-4">
-            <div className="text-center mb-4">
-              <h2>{t('app.name')}</h2>
+            <div className="mb-4">
+
               <h4>{t(headingKey)}</h4>
               <p className="text-muted">{t('app.tagline')}</p>
             </div>
