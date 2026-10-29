@@ -1,5 +1,5 @@
-import OperationsWorkspace from './OperationsWorkspace'
-import { useSearchParams, Link } from 'react-router-dom'
+import OperationsWorkspace, { workspaceUrl } from './OperationsWorkspace'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Alert, Button, Form, Nav } from 'react-bootstrap'
 import { useTranslation } from '@/i18n'
@@ -26,7 +26,12 @@ import { customerFields } from './customer-fields'
 import type { Field } from './shared'
 export default function Customers({ optical = false }: { optical?: boolean }) {
   const { t, formatDate } = useTranslation()
-  const { request, can } = useWorkspace()
+  const { request, can, shop } = useWorkspace()
+  const navigate = useNavigate()
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const canMessage = can('communications.send') && can('communications.read')
+  useEffect(() => setSelectedIds([]), [shop.id])
+  const compose = (channel: string, ids: number[], bulk = false) => navigate(workspaceUrl('/communications?' + new URLSearchParams({compose: channel, [bulk ? 'customers' : 'customer']: ids.join(',')}), shop.id))
   const [params] = useSearchParams()
   const [deepError, setDeepError] = useState('')
   const deepRecord = params.get('record')
@@ -86,8 +91,15 @@ export default function Customers({ optical = false }: { optical?: boolean }) {
           </Button>
         </div>
         <LoadState {...list} />
+        {canMessage && <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <span>{t('ops.selectedCustomers')}: {selectedIds.length} / 100</span>
+          <Button variant="outline-primary" onClick={() => setSelectedIds([...new Set([...selectedIds, ...(list.data?.data.filter(c => c.status === 'active').map(c => c.id) ?? [])])].slice(0, 100))}>{t('ops.selectPage')}</Button>
+          <Button variant="outline-secondary" onClick={() => setSelectedIds([])}>{t('ops.clearSelection')}</Button>
+          {['sms', 'email'].map(channel => <Button key={channel} disabled={!selectedIds.length} onClick={() => compose(channel, selectedIds, true)}>{t(channel === 'sms' ? 'ops.bulkSms' : 'ops.bulkEmail')}</Button>)}
+        </div>}
         <Records
           headers={[
+            ...(canMessage ? ['ops.selectCustomer'] : []),
             'customers.headerCustomer',
             'customers.headerContact',
             'customers.headerCityCap',
@@ -97,6 +109,7 @@ export default function Customers({ optical = false }: { optical?: boolean }) {
           empty={!list.data?.data.length}>
           {list.data?.data.map((c) => (
             <tr key={c.id}>
+              {canMessage && <td><Form.Check aria-label={t('ops.selectCustomer') + ' ' + c.first_name + ' ' + c.last_name} checked={selectedIds.includes(c.id)} disabled={c.status !== 'active' || (!selectedIds.includes(c.id) && selectedIds.length >= 100)} onChange={e => setSelectedIds(e.target.checked ? [...selectedIds, c.id] : selectedIds.filter(id => id !== c.id))} /></td>}
               <td>
                 {c.first_name} {c.last_name}
                 <small className="d-block text-muted">
@@ -118,6 +131,7 @@ export default function Customers({ optical = false }: { optical?: boolean }) {
                 <Button size="sm" variant="outline-primary" onClick={() => setSelected(c)}>
                   {t('customers.details')}
                 </Button>
+                {canMessage && c.status === 'active' && <div className="d-flex flex-wrap gap-1 mt-2">{['sms', 'whatsapp', 'email'].map(channel => <Button key={channel} size="sm" variant="outline-primary" disabled={channel === 'email' ? !c.email : !c.phone} onClick={() => compose(channel, [c.id])}>{t('ops.' + channel)}</Button>)}</div>}
                 {can('customers.write') && (
                   <>
                     {can('customers.edit') && (<Button
@@ -190,6 +204,7 @@ export default function Customers({ optical = false }: { optical?: boolean }) {
               {t('customers.closeDetails')}
             </Button>
           }>
+          {canMessage && selected.status === 'active' && <div className="d-flex flex-wrap gap-2 mb-3">{['sms', 'whatsapp', 'email'].map(channel => <Button key={channel} variant="outline-primary" onClick={() => compose(channel, [selected.id])}>{t('ops.' + channel)}</Button>)}</div>}
           <dl className="row">
             {customerFields.map((f) => {
               const raw = selected[f.key as keyof Customer]

@@ -15,7 +15,7 @@ import Communications from '../../../../contracts/operations/Communications'
 import Payments from '../../../../contracts/operations/Payments'
 import Daily from '../../../../contracts/operations/Daily'
 
-function workspaceUrl(path: string, shop: number): string {
+export function workspaceUrl(path: string, shop: number): string {
   const [pathname, search] = path.split('?')
   const params = new URLSearchParams(search)
   params.set('shop', String(shop))
