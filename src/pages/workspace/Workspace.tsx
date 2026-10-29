@@ -1,5 +1,5 @@
 import OperationsWorkspace from './OperationsWorkspace'
-import Vista from './Vista'
+import Vista, {VistaPublishPage} from './Vista'
 import { useEffect, useState } from 'react'
 import { Alert, Button, Card, Form } from 'react-bootstrap'
 import { useParams, useSearchParams } from 'react-router-dom'
@@ -22,6 +22,7 @@ const modules: Record<string, { label: string; permission: string }> = {
   communications: { label: 'ops.communications', permission: 'communications.read' },
   payments: { label: 'ops.payments', permission: 'payments.read' },
   activity: { label: 'ops.audit', permission: 'audit.read' },
+  'vista-publish': {label: 'vista.publishTitle', permission: 'integrations.publish'},
   vista: { label: 'module.vista', permission: 'integrations.read' },
   dashboard: { label: 'module.dashboard', permission: 'reports.read' },
   customers: { label: 'module.customers', permission: 'customers.read' },
@@ -157,7 +158,7 @@ function Selected({ shop, module }: { shop: ManagedShop; module: string }) {
   return (
     <WorkspaceContext.Provider value={value}>
       {({customers:"customers",optical:"optical",agenda:"agenda",products:"products",inventory:"stock",orders:"orders",documents:"files"} as Record<string,string>)[module] && <OperationsWorkspace module={"output-" + ({customers:"customers",optical:"optical",agenda:"agenda",products:"products",inventory:"stock",orders:"orders",documents:"files"} as Record<string,string>)[module]} />}
-      {module === 'dashboard' && !value.can('reports.read') ? <OperationsWorkspace module="daily" compact /> : ['daily', 'employees', 'reminders', 'followups', 'communications', 'payments', 'activity'].includes(module) ? <OperationsWorkspace module={module} /> : module === 'vista' ? (
+      {module === 'dashboard' && !value.can('reports.read') ? <OperationsWorkspace module="daily" compact /> : ['daily', 'employees', 'reminders', 'followups', 'communications', 'payments', 'activity'].includes(module) ? <OperationsWorkspace module={module} /> : module === 'vista-publish' ? <VistaPublishPage /> : module === 'vista' ? (
         <Vista />
       ) : module === 'customers' ? (
         <Customers />

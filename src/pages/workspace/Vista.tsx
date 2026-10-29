@@ -1,7 +1,13 @@
-import { VistaEditorProvider, VistaImagePicker, VistaContactCategory, VistaStepNavigation } from "../../../../contracts/VistaEditor";
+import {
+  VistaCommonSections,
+  VistaEditorProvider,
+  VistaImagePicker,
+  VistaContactCategory,
+  VistaStepNavigation,
+} from "../../../../contracts/VistaEditor";
 import { vistaStepForField } from "../../../../contracts/vista-form";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Alert, Button, Form, Modal } from "react-bootstrap";
 import { useTranslation } from "@/i18n";
 import LanguageToggle from "@/components/LanguageToggle";
@@ -38,8 +44,14 @@ import {
 } from "../../../../contracts/vista-form";
 export default function Vista() {
   const { request, can, shop } = useWorkspace();
-  const { t, tOr, translateError, translateMessage, formatDateTime, formatNumber } =
-    useTranslation();
+  const {
+    t,
+    tOr,
+    translateError,
+    translateMessage,
+    formatDateTime,
+    formatNumber,
+  } = useTranslation();
   const q = useLoad<VistaStatus>("/integrations/vista", 10000);
   const c = q.data?.data.connection;
   const [kind, setKind] = useState("products");
@@ -109,7 +121,9 @@ export default function Vista() {
                 expiry: formatDateTime(c.expires_at),
               })}
             </p>
-            {q.data?.data.processing?.worker_active === false && <Alert variant="warning">{t("vista.workerUnavailable")}</Alert>}
+            {q.data?.data.processing?.worker_active === false && (
+              <Alert variant="warning">{t("vista.workerUnavailable")}</Alert>
+            )}
             {!c.synced_at && <p role="status">{t("vista.initialSync")}</p>}
             {c.last_error && (
               <Alert variant="warning">{translateError(c.last_error)}</Alert>
@@ -291,18 +305,19 @@ export default function Vista() {
 export function VistaProduct({
   product,
   refresh,
+  editor = false,
 }: {
   product: Product;
+  editor?: boolean;
   refresh: () => Promise<void>;
 }) {
-  const { request, can, prefix } = useWorkspace();
+  const { request, can, prefix, shop } = useWorkspace();
+  const navigate = useNavigate();
+  const initialized = useRef(false);
   const { t, translateError, translateMessage, formatNumber } =
     useTranslation();
   const c = useLoad<VistaStatus>("/integrations/vista");
-  const q = useLoad<PublicationState>(
-    "/products/" + product.id + "/vista",
-    5000,
-  );
+  const q = useLoad<PublicationState>("/products/" + product.id + "/vista");
   const [meta, setMeta] = useState<VistaMetadata | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -317,8 +332,48 @@ export function VistaProduct({
   const pending = q.data?.operations.some((o) =>
     ["pending", "processing", "uncertain"].includes(o.status),
   );
+  const { reload: reloadPublication, busy: loadingPublication } = q;
+  useEffect(() => {
+    if (!pending || loadingPublication) return;
+    const timer = setTimeout(() => {
+      void reloadPublication();
+      void refresh();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [pending, loadingPublication, reloadPublication, refresh]);
   const allowed =
     can("integrations.publish") && can("products.write") && can("stock.write");
+  const begin = useCallback(() => {
+    setBusy(true);
+    setError("");
+    setKey(crypto.randomUUID());
+    void request<VistaMetadata>("/integrations/vista/metadata")
+      .then((m) => {
+        if (m.data.schema_version !== 3) throw new Error("vista.schemaVersion");
+        setValues(initialVistaValues(product, pub?.mapping));
+        setQuantity(0);
+        setStep(0);
+        setMeta(m);
+      })
+      .catch((e) => setError(errorMessage(e)))
+      .finally(() => setBusy(false));
+  }, [request, product, pub?.mapping]);
+
+  useEffect(() => {
+    if (
+      editor &&
+      q.data &&
+      ["connected", "syncing"].includes(
+        c.data?.data.connection?.status ?? "",
+      ) &&
+      allowed &&
+      !pending &&
+      !initialized.current
+    ) {
+      initialized.current = true;
+      begin();
+    }
+  }, [editor, q.data, c.data, allowed, pending, begin]);
   async function action(path: string) {
     setBusy(true);
     setError("");
@@ -332,7 +387,13 @@ export function VistaProduct({
       setBusy(false);
     }
   }
-  if (!c.data?.data.enabled) return null;
+  if (!c.data?.data.enabled)
+    return editor ? (
+      <>
+        <LoadState {...c} />
+        <p>{t("vista.connectFirst")}</p>
+      </>
+    ) : null;
   return (
     <Panel title="vista.publicationTitle">
       {error && <Alert variant="danger">{translateMessage(error)}</Alert>}
@@ -358,7 +419,7 @@ export function VistaProduct({
               available: formatNumber(product.balance.available),
             })}
           </p>
-          {allowed && (
+          {allowed && (!editor || !meta) && (
             <div className="d-flex gap-2 mb-3">
               <Button
                 disabled={
@@ -367,21 +428,13 @@ export function VistaProduct({
                   product.status !== "active" ||
                   product.currency !== "EUR"
                 }
-                onClick={() => {
-                  setBusy(true);
-                  setError("");
-                  setKey(crypto.randomUUID());
-                  void request<VistaMetadata>("/integrations/vista/metadata")
-                    .then((m) => {
-                      if (m.data.schema_version !== 3)
-                        throw new Error("vista.schemaVersion");
-                      setValues(initialVistaValues(product, pub?.mapping));
-                      setQuantity(0); setStep(0);
-                      setMeta(m);
-                    })
-                    .catch((e) => setError(errorMessage(e)))
-                    .finally(() => setBusy(false));
-                }}
+                onClick={() =>
+                  editor
+                    ? begin()
+                    : navigate(
+                        `/workspace/vista-publish?shop=${shop.id}&record=${product.id}`,
+                      )
+                }
               >
                 {remoteId
                   ? t("vista.updateOrAllocate")
@@ -416,7 +469,8 @@ export function VistaProduct({
                   <Status value={o.status} />
                 </td>
                 <td>
-                  {formatNumber(o.allocated_quantity)} / {formatNumber(o.attempts)}
+                  {formatNumber(o.allocated_quantity)} /{" "}
+                  {formatNumber(o.attempts)}
                 </td>
                 <td>
                   {o.last_error && translateError(o.last_error)}
@@ -456,146 +510,214 @@ export function VistaProduct({
           </Records>
         </>
       )}
-      <Modal show={!!meta} onHide={() => setMeta(null)} size="lg" scrollable>
-        <Modal.Header closeButton>
-          <Modal.Title>{t("vista.publishTitle")}</Modal.Title>
-          <LanguageToggle variant="inline" className="ms-auto me-2" />
-        </Modal.Header>
-        <Modal.Body>
-          {meta && (
-            <VistaEditorProvider product={product} values={values} meta={meta} theme="admin" request={request} imageBase={"/api/v1" + prefix} refresh={() => void refresh()} t={t}>
-            <Form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setBusy(true);
-                setError("");
-                try {
-                  await request("/products/" + product.id + "/vista", {
-                    method: "POST",
-                    body: JSON.stringify({
-                      version: product.version,
-                      quantity,
-                      creation_key: key,
-                      expected_version: pub?.remote_version,
-                      mapping: publicationValues(meta, values),
-                    }),
-                  });
-                  setMeta(null);
-                  await q.reload();
-                  await refresh();
-                } catch (e) {
-                  setError(errorMessage(e));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <p>{meta.data.publication_policy}</p>
-              <p>{t("vista.photoOrderNote")}</p>
-              <Form.Group className="mb-3" controlId="vista-category">
-                <Form.Label>{t("vista.categoryLabel")}</Form.Label>
-                <Form.Select
-                  required
-                  value={String(values.category_id ?? "")}
-                  onChange={(e) =>
-                    { setValues(selectVistaCategory(values, e.target.value, meta)); setStep(0); }
-                  }
+      {editor && meta && (
+        <section data-vista-editor className="border-top pt-4">
+          <div className="d-flex align-items-center mb-4">
+            <h1 className="h3">{t("vista.publishTitle")}</h1>
+            <LanguageToggle variant="inline" className="ms-auto me-2" />
+          </div>
+          <div>
+            {meta && (
+              <VistaEditorProvider
+                product={product}
+                values={values}
+                meta={meta}
+                theme="admin"
+                request={request}
+                imageBase={"/api/v1" + prefix}
+                refresh={() => void refresh()}
+                t={t}
+              >
+                <Form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setBusy(true);
+                    setError("");
+                    try {
+                      await request("/products/" + product.id + "/vista", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          version: product.version,
+                          quantity,
+                          creation_key: key,
+                          expected_version: pub?.remote_version,
+                          mapping: publicationValues(meta, values),
+                        }),
+                      });
+                      setMeta(null);
+                      await q.reload();
+                      await refresh();
+                    } catch (e) {
+                      setError(errorMessage(e));
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
                 >
-                  <option value="">{t("vista.selectPlaceholder")}</option>
-                  {meta.data.categories
-                    .filter((c) => c.parent_id === null && c.product_type)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </Form.Select>
-              </Form.Group>
-              <p>
-                {t("vista.productType", {
-                  type: String(values.product_type ?? "").replaceAll("_", " "),
-                })}
-              </p>
-              {contact && step === 0 && <VistaContactCategory values={values} onChange={setValues} />}
-              {!contact && vistaSubcategories(meta, values.category_id).length > 0 && (
-                <Form.Group controlId="vista-subcategory">
-                  <Form.Label>{t("vista.subcategoryLabel")}</Form.Label>
-                  <Form.Select
-                    value={String(values.sub_category_id ?? "")}
-                    onChange={(e) =>
-                      setValues({
-                        ...values,
-                        sub_category_id: e.target.value
-                          ? Number(e.target.value)
-                          : undefined,
-                      })
+                  <p>{meta.data.publication_policy}</p>
+                  <p>{t("vista.photoOrderNote")}</p>
+                  <Form.Group className="mb-3" controlId="vista-category">
+                    <Form.Label>{t("vista.categoryLabel")}</Form.Label>
+                    <Form.Select
+                      required
+                      value={String(values.category_id ?? "")}
+                      onChange={(e) => {
+                        setValues(
+                          selectVistaCategory(values, e.target.value, meta),
+                        );
+                        setStep(0);
+                      }}
+                    >
+                      <option value="">{t("vista.selectPlaceholder")}</option>
+                      {meta.data.categories
+                        .filter((c) => c.parent_id === null && c.product_type)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                    </Form.Select>
+                  </Form.Group>
+                  <p>
+                    {t("vista.productType", {
+                      type: String(values.product_type ?? "").replaceAll(
+                        "_",
+                        " ",
+                      ),
+                    })}
+                  </p>
+                  {contact && step === 0 && (
+                    <VistaContactCategory
+                      values={values}
+                      onChange={setValues}
+                    />
+                  )}
+                  {!contact &&
+                    vistaSubcategories(meta, values.category_id).length > 0 && (
+                      <Form.Group controlId="vista-subcategory">
+                        <Form.Label>{t("vista.subcategoryLabel")}</Form.Label>
+                        <Form.Select
+                          value={String(values.sub_category_id ?? "")}
+                          onChange={(e) =>
+                            setValues({
+                              ...values,
+                              sub_category_id: e.target.value
+                                ? Number(e.target.value)
+                                : undefined,
+                            })
+                          }
+                        >
+                          <option value="">
+                            {t("vista.selectPlaceholder")}
+                          </option>
+                          {vistaSubcategories(meta, values.category_id).map(
+                            ([id, name]) => (
+                              <option key={id} value={id}>
+                                {name}
+                              </option>
+                            ),
+                          )}
+                        </Form.Select>
+                      </Form.Group>
+                    )}
+                  {contact && (
+                    <VistaStepNavigation step={step} onChange={setStep} />
+                  )}
+                  {(!contact || step === 0) && (
+                    <>
+                      <VistaCommonSections
+                        fields={meta.data.common_fields ?? []}
+                        render={(fields) => (
+                          <VistaFields
+                            fields={fields}
+                            values={values}
+                            onChange={setValues}
+                          />
+                        )}
+                      />
+                      <Form.Group className="my-3" controlId="vista-quantity">
+                        <Form.Label>{t("vista.quantityLabel")}</Form.Label>
+                        <Form.Control
+                          type="number"
+                          min={0}
+                          max={product.balance.available}
+                          required
+                          value={quantity}
+                          onChange={(e) => setQuantity(Number(e.target.value))}
+                        />
+                      </Form.Group>
+                      <VistaImagePicker
+                        label={t("ops.vista.photos")}
+                        value={values.gallery_image_ids}
+                        onChange={(v) =>
+                          setValues({ ...values, gallery_image_ids: v })
+                        }
+                      />
+                    </>
+                  )}
+                  <VistaFields
+                    fields={
+                      meta.data.categories
+                        .find((c) => c.id === Number(values.category_id))
+                        ?.fields?.filter(
+                          (f) => !contact || vistaStepForField(f.key) === step,
+                        ) ?? []
+                    }
+                    values={values}
+                    onChange={setValues}
+                  />
+                  {allocated !== null && (
+                    <p>
+                      {t("vista.optionAllocationTotal", {
+                        total: formatNumber(allocated),
+                        quantity: formatNumber(quantity),
+                      })}
+                    </p>
+                  )}
+                  {error && (
+                    <Alert variant="danger">{translateMessage(error)}</Alert>
+                  )}
+                  <Button
+                    type="submit"
+                    className="mt-3"
+                    disabled={
+                      busy ||
+                      (contact && step !== 2) ||
+                      product.images?.some(
+                        (i) => i.scan_status === "pending" && !i.archived_at,
+                      ) ||
+                      !values.category_id ||
+                      (allocated !== null && allocated !== quantity)
                     }
                   >
-                    <option value="">{t("vista.selectPlaceholder")}</option>
-                    {vistaSubcategories(meta, values.category_id).map(
-                      ([id, name]) => (
-                        <option key={id} value={id}>
-                          {name}
-                        </option>
-                      ),
-                    )}
-                  </Form.Select>
-                </Form.Group>
-              )}
-              {contact && <VistaStepNavigation step={step} onChange={setStep} />}
-              {(!contact || step === 0) && <>
-              <VistaFields
-                fields={meta.data.common_fields ?? []}
-                values={values}
-                onChange={setValues}
-              />
-              <Form.Group className="my-3" controlId="vista-quantity">
-                <Form.Label>{t("vista.quantityLabel")}</Form.Label>
-                <Form.Control
-                  type="number"
-                  min={0}
-                  max={product.balance.available}
-                  required
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                />
-              </Form.Group>
-              <VistaImagePicker label={t("ops.vista.photos")} value={values.gallery_image_ids} onChange={v => setValues({ ...values, gallery_image_ids: v })} />
-              </>}
-              <VistaFields
-                fields={
-                  meta.data.categories.find(
-                    (c) => c.id === Number(values.category_id),
-                  )?.fields?.filter(f => !contact || vistaStepForField(f.key) === step) ?? []
-                }
-                values={values}
-                onChange={setValues}
-              />
-              {allocated !== null && (
-                <p>
-                  {t("vista.optionAllocationTotal", {
-                    total: formatNumber(allocated),
-                    quantity: formatNumber(quantity),
-                  })}
-                </p>
-              )}
-              {error && (
-                <Alert variant="danger">{translateMessage(error)}</Alert>
-              )}
-              <Button
-                type="submit"
-                className="mt-3"
-                disabled={
-                  busy || (contact && step !== 2) || product.images?.some(i => i.scan_status === "pending" && !i.archived_at) || !values.category_id || (allocated !== null && allocated !== quantity)
-                }
-              >
-                {t("vista.publishBtn")}
-              </Button>
-            </Form>
-            </VistaEditorProvider>
-          )}
-        </Modal.Body>
-      </Modal>
+                    {t("vista.publishBtn")}
+                  </Button>
+                </Form>
+              </VistaEditorProvider>
+            )}
+          </div>
+        </section>
+      )}
     </Panel>
+  );
+}
+
+export function VistaPublishPage() {
+  const [params] = useSearchParams();
+  const { shop } = useWorkspace();
+  const { t } = useTranslation();
+  const q = useLoad<{ data: Product }>(
+    "/products/" + (params.get("record") ?? "0"),
+  );
+  return (
+    <>
+      <Link to={`/workspace/products?shop=${shop.id}`}>
+        {t("module.products")}
+      </Link>
+      <LoadState {...q} />
+      {q.data && (
+        <VistaProduct editor product={q.data.data} refresh={q.reload} />
+      )}
+    </>
   );
 }
