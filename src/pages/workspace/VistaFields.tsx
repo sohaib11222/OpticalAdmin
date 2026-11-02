@@ -1,4 +1,4 @@
-import { VistaSpecialField, vistaSpecialTypes } from "../../../../contracts/VistaEditor";
+import { VistaColorVariations, VistaSizeRows, VistaPackRows, VistaSpecialField, vistaSpecialTypes } from "../../../../contracts/VistaEditor";
 import { Button, Form } from "react-bootstrap";
 const Input = Form.Control;
 import type { VistaField } from "../../../../contracts/vista";
@@ -25,6 +25,9 @@ export function VistaFields({
         const id = prefix + "-" + field.key;
         const value = values[field.key];
         if (vistaSpecialTypes.includes(field.type)) return <VistaSpecialField key={id} field={field} value={value} onChange={v => set(field.key, v)} />;
+        if (field.type === 'rows' && field.key === 'sizes') return <VistaSizeRows key={id} field={field} value={value} onChange={v=>set(field.key,v)} />;
+        if (field.type === 'rows' && field.key === 'contact_lens_packs') return <VistaPackRows key={id} field={field} value={value} onChange={v=>set(field.key,v)} render={(row,change)=><VistaFields fields={field.fields ?? []} values={row} onChange={change} prefix={id+'-'+row.option_key} />} />;
+        if (field.type === "rows" && field.key === "variants") return <VistaColorVariations key={id} field={field} value={value} onChange={v => set(field.key, v)} render={(row, change) => <VistaFields fields={field.fields ?? []} values={row} onChange={change} prefix={id + '-dialog'} />} />;
         if (field.type === "rows") {
           const rows = (Array.isArray(value) ? value : []) as VistaValues[];
           return (
@@ -159,18 +162,19 @@ export function VistaFields({
                   </option>
                 ))}
               </select>
-            ) : field.type === "textarea" ? (
+            ) : ['textarea', 'list'].includes(field.type) ? (
               <textarea
                 id={id}
                 className="form-control"
                 required={field.required}
                 maxLength={field.maxLength}
-                value={String(value ?? "")}
+                value={Array.isArray(value) ? value.join(', ') : String(value ?? "")}
                 onChange={(e) => set(field.key, e.target.value)}
               />
             ) : (
               <Input
                 id={id}
+                readOnly={field.key === 'stock_quantity' && Array.isArray(values.sizes) && values.sizes.length > 0}
                 type={
                   ["number", "date"].includes(field.type) ? field.type : "text"
                 }

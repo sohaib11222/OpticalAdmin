@@ -391,7 +391,7 @@ export function VistaProduct({
     return editor ? (
       <>
         <LoadState {...c} />
-        <p>{t("vista.connectFirst")}</p>
+        {!c.busy && !c.error && <p>{t("vista.connectFirst")}</p>}
       </>
     ) : null;
   return (
@@ -625,7 +625,9 @@ export function VistaProduct({
                   )}
                   {(!contact || step === 0) && (
                     <>
-                      <VistaCommonSections
+                      <VistaCommonSections section="basic" fields={meta.data.common_fields ?? []} render={fields => <VistaFields fields={fields} values={values} onChange={setValues} />} />
+                      {!contact && <VistaFields fields={meta.data.categories.find(c => c.id === Number(values.category_id))?.fields?.filter(f => f.key === "variants") ?? []} values={values} onChange={setValues} />}
+                      <VistaCommonSections section="pricing"
                         fields={meta.data.common_fields ?? []}
                         render={(fields) => (
                           <VistaFields
@@ -660,12 +662,15 @@ export function VistaProduct({
                       meta.data.categories
                         .find((c) => c.id === Number(values.category_id))
                         ?.fields?.filter(
-                          (f) => !contact || vistaStepForField(f.key) === step,
+                          (f) => contact ? vistaStepForField(f.key) === step : f.key !== "variants",
                         ) ?? []
                     }
                     values={values}
                     onChange={setValues}
                   />
+                  {(!contact || step === 0) && (
+                      <VistaCommonSections section="listing" fields={meta.data.common_fields ?? []} render={fields => <VistaFields fields={fields} values={values} onChange={setValues} />} />
+                  )}
                   {allocated !== null && (
                     <p>
                       {t("vista.optionAllocationTotal", {
