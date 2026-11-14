@@ -2,7 +2,8 @@ import OperationsWorkspace from "./OperationsWorkspace"
 import { useSearchParams } from 'react-router-dom'
 import { VistaProduct } from './Vista'
 import { useEffect, useState } from 'react'
-import { Alert, Button, Form } from 'react-bootstrap'
+import { Button, Form } from 'react-bootstrap'
+import { toast } from 'react-toastify'
 import type { Category, Product, ProductImage, StockBalance, StockMovement } from '../../../../contracts/commerce'
 import { decimal } from '../../../../contracts/commerce'
 import type { Page } from '../../../../contracts/customers'
@@ -58,10 +59,30 @@ export default function Catalog({ inventory = false }: { inventory?: boolean }) 
   }, [params])
   const [key, setKey] = useState(crypto.randomUUID())
   const [categories, setCategories] = useState(false)
+  const [checkingCategories, setCheckingCategories] = useState(false)
   const list = useLoad<Page<Product>>(inventory ? null : '/products?' + new URLSearchParams({ page: String(page), search, status }))
   const stock = useLoad<Page<StockBalance>>(
     inventory ? '/inventory?' + new URLSearchParams({ page: String(page), search, low: params.get('low') ?? '' }) : null,
   )
+  const beginProduct = async () => {
+    setCheckingCategories(true)
+    try {
+      const result = await request<Page<Category>>('/product-categories?status=active&page=1')
+      if (!result.data.length) {
+        setCategories(true)
+        toast.info(t('catalog.categoryRequiredBeforeProduct'))
+        window.requestAnimationFrame(() => document.getElementById('catalog-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+        return
+      }
+      setCategory(null)
+      setKey(crypto.randomUUID())
+      setEdit('new')
+    } catch (cause) {
+      toast.error(errorMessage(cause))
+    } finally {
+      setCheckingCategories(false)
+    }
+  }
   return (
     <>
       <Panel
@@ -74,12 +95,9 @@ export default function Catalog({ inventory = false }: { inventory?: boolean }) 
               </Button>
               {can('products.create') && (
                 <Button
-                  onClick={() => {
-                    setCategory(null)
-                    setKey(crypto.randomUUID())
-                    setEdit('new')
-                  }}>
-                  {t('catalog.addProduct')}
+                  disabled={checkingCategories}
+                  onClick={() => void beginProduct()}>
+                  {checkingCategories ? t('catalog.checkingCategories') : t('catalog.addProduct')}
                 </Button>
               )}
             </div>
@@ -199,7 +217,7 @@ export default function Catalog({ inventory = false }: { inventory?: boolean }) 
           />
         </Editor>
       )}
-      {categories && <Categories />}
+      {categories && <div id="catalog-categories"><Categories /></div>}
       {selected && (
         <ProductDetail
           key={selected}
@@ -276,30 +294,55 @@ function Categories() {
 }
 
 function ProductDetail({ id, close }: { id: number; close: () => void }) {
-  const { t, translateMessage, formatNumber } = useTranslation()
+  const { t, formatNumber } = useTranslation()
   const { request, prefix, can } = useWorkspace()
   const q = useLoad<{ data: Product }>('/products/' + id, 5000)
   const p = q.data?.data
   const [action, setAction] = useState<'status' | 'stock' | null>(null)
   const [key, setKey] = useState(crypto.randomUUID())
-  const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const processing = useLoad<{ data: { message: string; worker_active: boolean } }>('/uploads/processing', 15000)
+  const [uploads, setUploads] = useState<Array<{ id: string; name: string; state: 'uploading' | 'ready' | 'failed'; message?: string }>>([])
   async function imageAction(i: ProductImage, action: 'retry' | 'archive' | 'primary') {
     setBusy(true)
-    setError('')
     try {
       await request('/catalog-images/' + i.id + (action === 'retry' ? '/retry' : ''), {
         method: action === 'retry' ? 'POST' : 'PATCH',
         body: JSON.stringify(action === 'retry' ? {} : { action, version: p?.version }),
       })
       await q.reload()
+      toast.success(t('catalog.imageActionSucceeded'))
     } catch (e) {
-      setError(errorMessage(e))
+      toast.error(errorMessage(e))
     } finally {
       setBusy(false)
     }
+  }
+  const uploadImages = async (files: FileList | null) => {
+    const selected = Array.from(files ?? [])
+    if (!selected.length || busy) return
+    const records = selected.map((file) => ({ id: crypto.randomUUID(), name: file.name, state: 'uploading' as const }))
+    setUploads((current) => [...current, ...records])
+    setBusy(true)
+    const results = await Promise.all(selected.map(async (file, index) => {
+      const record = records[index]
+      const data = new FormData()
+      data.set('file', file)
+      data.set('upload_key', crypto.randomUUID())
+      try {
+        await request('/products/' + id + '/images', { method: 'POST', body: data })
+        setUploads((current) => current.map((entry) => entry.id === record.id ? { ...entry, state: 'ready' } : entry))
+        return true
+      } catch (cause) {
+        const message = errorMessage(cause)
+        setUploads((current) => current.map((entry) => entry.id === record.id ? { ...entry, state: 'failed', message } : entry))
+        return false
+      }
+    }))
+    await q.reload()
+    setBusy(false)
+    const completed = results.filter(Boolean).length
+    if (completed) toast.success(t('catalog.photosUploadedReady', { count: completed }))
+    if (completed !== selected.length) toast.error(t('catalog.somePhotosFailed'))
   }
   return (
     <Panel
@@ -310,7 +353,6 @@ function ProductDetail({ id, close }: { id: number; close: () => void }) {
         </Button>
       }>
       <LoadState {...q} />
-      {error && <Alert variant="danger">{translateMessage(error)}</Alert>}
       {p && (
         <>
           <OperationsWorkspace module="variations" product={p} />
@@ -341,9 +383,6 @@ function ProductDetail({ id, close }: { id: number; close: () => void }) {
               </Button>
             )}
           </div>
-          <Alert variant={processing.data?.data.worker_active ? 'info' : 'warning'}>
-            {processing.data?.data.message || t('catalog.uploadsNotice')}
-          </Alert>
           <div className="row">
             {p.images?.map((i) => (
               <div key={i.id} className="col-md-4 mb-3 border rounded p-3">
@@ -377,38 +416,26 @@ function ProductDetail({ id, close }: { id: number; close: () => void }) {
             ))}
           </div>
           {can('products.write') && can('products.edit') && (
-            <Form
-              onSubmit={(e) => {
-                e.preventDefault()
-                if (!file || busy) return
-                setBusy(true)
-                setError('')
-                const data = new FormData()
-                data.set('file', file)
-                data.set('upload_key', key)
-                void request('/products/' + id + '/images', { method: 'POST', body: data })
-                  .then(async () => {
-                    setFile(null)
-                    setKey(crypto.randomUUID())
-                    await q.reload()
-                  })
-                  .catch((e) => setError(errorMessage(e)))
-                  .finally(() => setBusy(false))
-              }}>
+            <Form>
               <Form.Group controlId="product-image">
                 <Form.Label>{t('catalog.imageField')}</Form.Label>
                 <Form.Control
                   type="file"
-                  accept="image/png,image/jpeg"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  disabled={busy}
                   onChange={(e) => {
-                    setFile((e.target as HTMLInputElement).files?.[0] ?? null)
-                    setKey(crypto.randomUUID())
+                    void uploadImages((e.target as HTMLInputElement).files)
+                    ;(e.target as HTMLInputElement).value = ''
                   }}
                 />
               </Form.Group>
-              <Button type="submit" className="my-3" disabled={!file || busy}>
-                {busy ? t('catalog.uploading') : t('catalog.uploadPhoto')}
-              </Button>
+              <Form.Text>{t('catalog.imageUploadAutoHelp')}</Form.Text>
+              {uploads.length > 0 && <ul className="list-unstyled mt-3 mb-0" aria-live="polite">
+                {uploads.slice(-12).map((upload) => <li key={upload.id} className={upload.state === 'failed' ? 'text-danger' : upload.state === 'ready' ? 'text-success' : 'text-muted'}>
+                  {upload.name} · {upload.state === 'uploading' ? t('catalog.uploading') : upload.state === 'ready' ? t('catalog.imageReady') : upload.message}
+                </li>)}
+              </ul>}
             </Form>
           )}
           <StockHistory product={p} refresh={q.reload} />

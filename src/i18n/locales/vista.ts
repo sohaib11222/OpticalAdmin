@@ -70,12 +70,17 @@ const en = {
   // Publication dialog
   "vista.publishTitle": "Publish to Vista Express",
   "vista.photoOrderNote":
-    "Select main, color and pack photographs separately from the clean product photos. Option quantities are additional stock allocations.",
+    "Select main, color and pack photographs separately from the clean product photos. Variation quantities are added together automatically.",
   "vista.categoryLabel": "Vista category",
   "vista.selectPlaceholder": "Select",
   "vista.productType": "Vista product type: {type}",
   "vista.subcategoryLabel": "Vista subcategory",
   "vista.quantityLabel": "Quantity to allocate now",
+  "vista.totalStockAutomatic": "Total stock (automatic)",
+  "vista.totalStockAutomaticHelp":
+    "This total is calculated from the quantity entered for each variation or pack.",
+  "vista.totalStockExceedsAvailable":
+    "The variation total is greater than the available shop stock ({available}).",
   "vista.optionAllocationTotal":
     "Option allocation total: {total}. Must equal quantity to allocate now ({quantity}).",
   "vista.publishBtn": "Publish with chosen allocation",
@@ -188,12 +193,17 @@ const it = {
   // Finestra di pubblicazione
   "vista.publishTitle": "Pubblica su Vista Express",
   "vista.photoOrderNote":
-    "Le foto verificate del prodotto mantengono il loro ordine attuale. Le quantità delle opzioni sono allocazioni aggiuntive di giacenza.",
+    "Seleziona separatamente le foto principali, del colore e della confezione tra le foto pulite del prodotto. Le quantità delle varianti vengono sommate automaticamente.",
   "vista.categoryLabel": "Categoria Vista",
   "vista.selectPlaceholder": "Seleziona",
   "vista.productType": "Tipo di prodotto Vista: {type}",
   "vista.subcategoryLabel": "Sottocategoria Vista",
   "vista.quantityLabel": "Quantità da allocare adesso",
+  "vista.totalStockAutomatic": "Giacenza totale (automatica)",
+  "vista.totalStockAutomaticHelp":
+    "Questo totale viene calcolato dalla quantità inserita per ogni variante o confezione.",
+  "vista.totalStockExceedsAvailable":
+    "Il totale delle varianti supera la giacenza disponibile del negozio ({available}).",
   "vista.optionAllocationTotal":
     "Totale allocato tra le opzioni: {total}. Deve essere uguale alla quantità da allocare adesso ({quantity}).",
   "vista.publishBtn": "Pubblica con l'allocazione scelta",

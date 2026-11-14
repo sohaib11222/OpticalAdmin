@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- workspace hooks and retained Bootstrap components */
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Alert, Badge, Button, Card, Form, Modal, Table } from 'react-bootstrap'
+import { toast } from 'react-toastify'
 import { ApiError, type SessionUser } from '../../../../contracts/session'
 import LanguageToggle from '@/components/LanguageToggle'
 import { adminApi, useAuthContext } from '@/context/useAuthContext'
@@ -59,7 +60,6 @@ function fieldKey(key: string) {
 export function useLoad<T>(path: string | null, interval = 0) {
   const { request } = useWorkspace()
   const [data, setData] = useState<T>()
-  const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const serial = useRef(0)
   const pending = useRef<{ path: string; id: number } | null>(null)
@@ -249,10 +249,12 @@ export function Editor({
           e.preventDefault()
           if (busy) return
           setBusy(true)
-          setError('')
           void onSave(values)
-            .then(close)
-            .catch((e) => setError(errorMessage(e)))
+            .then(() => {
+              toast.success(t('common.changesSaved'))
+              close()
+            })
+            .catch((e) => toast.error(translateMessage(errorMessage(e))))
             .finally(() => setBusy(false))
         }}>
         <Modal.Header closeButton>
@@ -261,11 +263,6 @@ export function Editor({
         </Modal.Header>
         <Modal.Body>
           {help && <p className="text-muted">{t(help)}</p>}
-          {error && (
-            <Alert variant="danger" role="alert">
-              {translateMessage(error)}
-            </Alert>
-          )}
           <FieldInputs fields={fields} values={values} setValues={setValues} />
           {children}
         </Modal.Body>

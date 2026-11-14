@@ -16,6 +16,7 @@ import type { Page } from "../../../../contracts/customers";
 import {
   displayVistaValue,
   type PublicationState,
+  type VistaField,
   type VistaMetadata,
   type VistaRecord,
   type VistaStatus,
@@ -40,6 +41,7 @@ import {
   vistaSubcategories,
   publicationValues,
   vistaAllocatedTotal,
+  vistaContactLensIsColored,
   type VistaValues,
 } from "../../../../contracts/vista-form";
 export default function Vista() {
@@ -326,9 +328,33 @@ export function VistaProduct({
   const [quantity, setQuantity] = useState(0);
   const [step, setStep] = useState(0);
   const contact = values.product_type === "contact_lens";
+  const coloredContact = Boolean(
+    contact && meta && vistaContactLensIsColored(values, meta),
+  );
   const pub = q.data?.data;
   const remoteId = pub?.remote_id ?? null;
-  const allocated = vistaAllocatedTotal(values);
+  const allocatedTotal = vistaAllocatedTotal(values);
+  const quantityForPublication = allocatedTotal ?? quantity;
+  const categoryFields =
+    meta?.data.categories.find((c) => c.id === Number(values.category_id))
+      ?.fields ?? [];
+  const visibleCategoryFields: VistaField[] = (!contact || coloredContact
+    ? categoryFields
+    : categoryFields
+        .filter(
+          (field) =>
+            !["variants", "contact_lens_colour_stock"].includes(field.key),
+        )
+        .map((field) =>
+          field.key === "contact_lens_packs"
+            ? {
+                ...field,
+                fields: field.fields?.filter(
+                  (child) => child.key !== "variant_keys",
+                ),
+              }
+            : field,
+        )) as VistaField[];
   const pending = q.data?.operations.some((o) =>
     ["pending", "processing", "uncertain"].includes(o.status),
   );
@@ -538,7 +564,7 @@ export function VistaProduct({
                         method: "POST",
                         body: JSON.stringify({
                           version: product.version,
-                          quantity,
+                          quantity: quantityForPublication,
                           creation_key: key,
                           expected_version: pub?.remote_version,
                           mapping: publicationValues(meta, values),
@@ -621,12 +647,24 @@ export function VistaProduct({
                       </Form.Group>
                     )}
                   {contact && (
-                    <VistaStepNavigation step={step} onChange={setStep} />
+                    <VistaStepNavigation
+                      step={step}
+                      onChange={setStep}
+                      showActions={false}
+                    />
                   )}
                   {(!contact || step === 0) && (
                     <>
                       <VistaCommonSections section="basic" fields={meta.data.common_fields ?? []} render={fields => <VistaFields fields={fields} values={values} onChange={setValues} />} />
-                      {!contact && <VistaFields fields={meta.data.categories.find(c => c.id === Number(values.category_id))?.fields?.filter(f => f.key === "variants") ?? []} values={values} onChange={setValues} />}
+                      {!contact && (
+                        <VistaFields
+                          fields={visibleCategoryFields.filter(
+                            (field) => field.key === "variants",
+                          )}
+                          values={values}
+                          onChange={setValues}
+                        />
+                      )}
                       <VistaCommonSections section="pricing"
                         fields={meta.data.common_fields ?? []}
                         render={(fields) => (
@@ -637,17 +675,37 @@ export function VistaProduct({
                           />
                         )}
                       />
-                      <Form.Group className="my-3" controlId="vista-quantity">
-                        <Form.Label>{t("vista.quantityLabel")}</Form.Label>
-                        <Form.Control
-                          type="number"
-                          min={0}
-                          max={product.balance.available}
-                          required
-                          value={quantity}
-                          onChange={(e) => setQuantity(Number(e.target.value))}
-                        />
-                      </Form.Group>
+                      {allocatedTotal === null ? (
+                        <Form.Group
+                          className="my-3"
+                          controlId="vista-quantity"
+                        >
+                          <Form.Label>{t("vista.quantityLabel")}</Form.Label>
+                          <Form.Control
+                            type="number"
+                            min={0}
+                            max={product.balance.available}
+                            required
+                            value={quantity}
+                            onChange={(e) =>
+                              setQuantity(Number(e.target.value))
+                            }
+                          />
+                        </Form.Group>
+                      ) : (
+                        <Form.Group
+                          className="my-3 rounded border border-primary-subtle bg-primary-subtle p-3"
+                          controlId="vista-total-stock"
+                        >
+                          <Form.Label>
+                            {t("vista.totalStockAutomatic")}
+                          </Form.Label>
+                          <Form.Control readOnly value={allocatedTotal} />
+                          <Form.Text>
+                            {t("vista.totalStockAutomaticHelp")}
+                          </Form.Text>
+                        </Form.Group>
+                      )}
                       <VistaImagePicker
                         label={t("ops.vista.photos")}
                         value={values.gallery_image_ids}
@@ -658,26 +716,31 @@ export function VistaProduct({
                     </>
                   )}
                   <VistaFields
-                    fields={
-                      meta.data.categories
-                        .find((c) => c.id === Number(values.category_id))
-                        ?.fields?.filter(
-                          (f) => contact ? vistaStepForField(f.key) === step : f.key !== "variants",
-                        ) ?? []
-                    }
+                    fields={visibleCategoryFields.filter((field) =>
+                      contact
+                        ? vistaStepForField(field.key) === step
+                        : field.key !== "variants",
+                    )}
                     values={values}
                     onChange={setValues}
                   />
                   {(!contact || step === 0) && (
                       <VistaCommonSections section="listing" fields={meta.data.common_fields ?? []} render={fields => <VistaFields fields={fields} values={values} onChange={setValues} />} />
                   )}
-                  {allocated !== null && (
-                    <p>
-                      {t("vista.optionAllocationTotal", {
-                        total: formatNumber(allocated),
-                        quantity: formatNumber(quantity),
-                      })}
-                    </p>
+                  {allocatedTotal !== null &&
+                    allocatedTotal > product.balance.available && (
+                      <Alert variant="danger">
+                        {t("vista.totalStockExceedsAvailable", {
+                          available: product.balance.available,
+                        })}
+                      </Alert>
+                    )}
+                  {contact && step < 2 && (
+                    <VistaStepNavigation
+                      step={step}
+                      onChange={setStep}
+                      showProgress={false}
+                    />
                   )}
                   {error && (
                     <Alert variant="danger">{translateMessage(error)}</Alert>
@@ -692,7 +755,7 @@ export function VistaProduct({
                         (i) => i.scan_status === "pending" && !i.archived_at,
                       ) ||
                       !values.category_id ||
-                      (allocated !== null && allocated !== quantity)
+                      quantityForPublication > product.balance.available
                     }
                   >
                     {t("vista.publishBtn")}
