@@ -8,6 +8,10 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+# The deployment pipeline uses npm ci and package-lock.json as the sole
+# dependency lock source. Do not let a locally generated Yarn lock block a
+# safe production release.
+yarn.lock
 dist
 dist-ssr
 .deployment-backups/
