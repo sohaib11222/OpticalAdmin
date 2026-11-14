@@ -60,6 +60,7 @@ function fieldKey(key: string) {
 export function useLoad<T>(path: string | null, interval = 0) {
   const { request } = useWorkspace()
   const [data, setData] = useState<T>()
+  const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const serial = useRef(0)
   const pending = useRef<{ path: string; id: number } | null>(null)
@@ -240,7 +241,6 @@ export function Editor({
 }) {
   const { t, translateMessage } = useTranslation()
   const [values, setValues] = useState(initial)
-  const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   return (
     <Modal show size="lg" onHide={() => !busy && close()} backdrop="static" aria-labelledby="editor-title">
