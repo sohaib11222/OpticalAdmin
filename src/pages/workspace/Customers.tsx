@@ -24,6 +24,12 @@ import {
 
 import { customerFields } from './customer-fields'
 import type { Field } from './shared'
+
+function whatsappHref(phone: string, name: string) {
+  const recipient = phone.replace(/\D/g, '').replace(/^00/, '')
+  return `https://wa.me/${recipient}?text=${encodeURIComponent(`Hello ${name},`)}`
+}
+
 export default function Customers({ optical = false }: { optical?: boolean }) {
   const { t, formatDate } = useTranslation()
   const { request, can, shop } = useWorkspace()
@@ -95,7 +101,7 @@ export default function Customers({ optical = false }: { optical?: boolean }) {
           <span>{t('ops.selectedCustomers')}: {selectedIds.length} / 100</span>
           <Button variant="outline-primary" onClick={() => setSelectedIds([...new Set([...selectedIds, ...(list.data?.data.filter(c => c.status === 'active').map(c => c.id) ?? [])])].slice(0, 100))}>{t('ops.selectPage')}</Button>
           <Button variant="outline-secondary" onClick={() => setSelectedIds([])}>{t('ops.clearSelection')}</Button>
-          {['sms', 'email'].map(channel => <Button key={channel} disabled={!selectedIds.length} onClick={() => compose(channel, selectedIds, true)}>{t(channel === 'sms' ? 'ops.bulkSms' : 'ops.bulkEmail')}</Button>)}
+          <Button disabled={!selectedIds.length} onClick={() => compose('email', selectedIds, true)}>{t('ops.bulkEmail')}</Button>
         </div>}
         <Records
           headers={[
@@ -131,7 +137,10 @@ export default function Customers({ optical = false }: { optical?: boolean }) {
                 <Button size="sm" variant="outline-primary" onClick={() => setSelected(c)}>
                   {t('customers.details')}
                 </Button>
-                {canMessage && c.status === 'active' && <div className="d-flex flex-wrap gap-1 mt-2">{['sms', 'whatsapp', 'email'].map(channel => <Button key={channel} size="sm" variant="outline-primary" disabled={channel === 'email' ? !c.email : !c.phone} onClick={() => compose(channel, [c.id])}>{t('ops.' + channel)}</Button>)}</div>}
+                {canMessage && c.status === 'active' && <div className="d-flex flex-wrap gap-1 mt-2">
+                  {c.email && <Button size="sm" variant="outline-primary" onClick={() => compose('email', [c.id])}>{t('ops.email')}</Button>}
+                  {c.phone && <Button size="sm" variant="outline-primary" onClick={() => window.open(whatsappHref(c.phone!, `${c.first_name} ${c.last_name}`), '_blank', 'noopener,noreferrer')}>{t('ops.whatsapp')}</Button>}
+                </div>}
                 {can('customers.write') && (
                   <>
                     {can('customers.edit') && (<Button
@@ -204,7 +213,10 @@ export default function Customers({ optical = false }: { optical?: boolean }) {
               {t('customers.closeDetails')}
             </Button>
           }>
-          {canMessage && selected.status === 'active' && <div className="d-flex flex-wrap gap-2 mb-3">{['sms', 'whatsapp', 'email'].map(channel => <Button key={channel} variant="outline-primary" onClick={() => compose(channel, [selected.id])}>{t('ops.' + channel)}</Button>)}</div>}
+          {canMessage && selected.status === 'active' && <div className="d-flex flex-wrap gap-2 mb-3">
+            {selected.email && <Button variant="outline-primary" onClick={() => compose('email', [selected.id])}>{t('ops.email')}</Button>}
+            {selected.phone && <Button variant="outline-primary" onClick={() => window.open(whatsappHref(selected.phone!, `${selected.first_name} ${selected.last_name}`), '_blank', 'noopener,noreferrer')}>{t('ops.whatsapp')}</Button>}
+          </div>}
           <dl className="row">
             {customerFields.map((f) => {
               const raw = selected[f.key as keyof Customer]

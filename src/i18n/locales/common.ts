@@ -27,6 +27,7 @@ const en = {
   "menu.reports": "Reporting",
   "menu.settings": "Shop administration",
   "menu.vista": "Vista Express",
+  "menu.vista360Subscriptions": "Vista Express 360 subscriptions",
   "menu.operations": "Platform operations",
   "menu.security": "Account security",
 
@@ -240,6 +241,7 @@ const it = {
   "menu.reports": "Reportistica",
   "menu.settings": "Amministrazione negozio",
   "menu.vista": "Vista Express",
+  "menu.vista360Subscriptions": "Abbonamenti Vista Express 360",
   "menu.operations": "Operazioni di piattaforma",
   "menu.security": "Sicurezza dell'account",
 

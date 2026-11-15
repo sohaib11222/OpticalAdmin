@@ -11,6 +11,7 @@ import AuthPage from "@/pages/foundation/AuthPage";
 import VerifyPage from "@/pages/foundation/VerifyPage";
 import Home from "@/pages/foundation/Home";
 import Security from "@/pages/foundation/Security";
+import SupportTickets from "@/pages/foundation/SupportTickets";
 function Protected({ children }: { children: ReactNode }) {
   const { user, loading, isAuthenticated, error, refresh } = useAuthContext();
   const { t, translateMessage } = useTranslation();
@@ -111,6 +112,14 @@ export default function AppRouter() {
         element={
           <Protected>
             <Operations />
+          </Protected>
+        }
+      />
+      <Route
+        path="/support"
+        element={
+          <Protected>
+            <SupportTickets />
           </Protected>
         }
       />

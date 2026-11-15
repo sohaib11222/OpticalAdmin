@@ -141,8 +141,12 @@ export default function OperationsWorkspace({ module, customerId, compact = fals
       params,
       actorId: user?.id ?? 0,
       timezone: shop.timezone ?? 'UTC',
-      invitationUrl: (token: string) =>
-        (import.meta.env.VITE_SHOP_URL || 'http://localhost:5173/pulse-ui').replace(/\/$/, '') + '/auth/invitation#' + token,
+      invitationUrl: (token: string) => {
+        const base = import.meta.env.VITE_SHOP_URL || 'http://localhost:5173';
+        const url = new URL('/auth/invitation', base);
+        url.searchParams.set('token', token);
+        return url.toString();
+      },
     }),
     [request, can, shop, t, params, user?.id],
   )

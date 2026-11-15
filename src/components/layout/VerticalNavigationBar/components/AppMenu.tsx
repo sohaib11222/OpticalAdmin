@@ -82,6 +82,20 @@ const MenuItem = ({ item, className, linkClassName }: SubMenus) => {
 }
 
 const MenuItemLink = ({ item, className }: SubMenus) => {
+  const external = Boolean(item.url && /^https?:\/\//i.test(item.url))
+  if (external) {
+    return (
+      <a href={item.url} target={item.target ?? '_blank'} rel="noreferrer" className={clsx(className, { disabled: item.isDisabled })}>
+        {item.icon && (
+          <span className="nav-icon">
+            <IconifyIcon icon={item.icon} />
+          </span>
+        )}
+        <span className="nav-text">{item.label}</span>
+        {item.badge && <span className={`badge badge-pill text-end bg-${item.badge.variant}`}>{item.badge.text}</span>}
+      </a>
+    )
+  }
   return (
     <Link to={item.url ?? ''} target={item.target} className={clsx(className, { disabled: item.isDisabled })}>
       {item.icon && (

@@ -31,6 +31,8 @@ const MENU_ITEMS: MenuItemType[] = [
   {"key": "employees", "label": "ops.employees", "icon": "bx:group", "url": "/workspace/employees"},
   {"key": "settings", "label": "menu.settings", "icon": "bx:cog", "url": "/workspace/settings"},
   {"key": "operations", "label": "menu.operations", "icon": "bx:analyse", "url": "/operations"},
+  {"key": "support", "label": "Support tickets", "icon": "bx:support", "url": "/support"},
+  {"key": "vista360-subscriptions", "label": "menu.vista360Subscriptions", "icon": "bx:credit-card", "url": (import.meta.env.VITE_VISTA_MARKETPLACE_ADMIN_URL || "https://admin.vistaexpress.it") + "/vista-express-360", "target": "_blank"},
   {"key": "security", "label": "menu.security", "icon": "bx:shield", "url": "/account/security"},
 ]
 
