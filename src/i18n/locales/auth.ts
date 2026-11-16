@@ -31,6 +31,16 @@ const en = {
   "auth.newEmail": "New email",
   "auth.signsOutAllSessions": "This signs out all sessions.",
   "auth.emailChangesRequireVerification": "Email changes require verification.",
+  "auth.registeredEmail": "Registered email address",
+  "auth.passwordCodeHelp": "For security, send a verification code to this email before choosing a new password.",
+  "auth.sendCode": "Send code",
+  "auth.resendCode": "Resend code",
+  "auth.resendIn": "Resend in {seconds}s",
+  "auth.enterCodeHelp": "Enter the 8-digit code sent to your registered email.",
+  "auth.verificationCode": "Verification code",
+  "auth.verifyCode": "Verify code",
+  "auth.codeVerified": "Email code verified. You can now choose a new password.",
+  "auth.saveNewPassword": "Save new password",
 
 };
 
@@ -65,6 +75,16 @@ const it = {
   "auth.newEmail": "Nuova email",
   "auth.signsOutAllSessions": "Questa operazione disconnette tutte le sessioni.",
   "auth.emailChangesRequireVerification": "La modifica dell'email richiede una verifica.",
+  "auth.registeredEmail": "Indirizzo email registrato",
+  "auth.passwordCodeHelp": "Per sicurezza, invia un codice di verifica a questa email prima di scegliere una nuova password.",
+  "auth.sendCode": "Invia codice",
+  "auth.resendCode": "Invia nuovamente il codice",
+  "auth.resendIn": "Invia nuovamente tra {seconds}s",
+  "auth.enterCodeHelp": "Inserisci il codice di 8 cifre inviato alla tua email registrata.",
+  "auth.verificationCode": "Codice di verifica",
+  "auth.verifyCode": "Verifica codice",
+  "auth.codeVerified": "Codice email verificato. Ora puoi scegliere una nuova password.",
+  "auth.saveNewPassword": "Salva nuova password",
 
 };
 
