@@ -141,6 +141,10 @@ export default function OperationsWorkspace({ module, customerId, compact = fals
       params,
       actorId: user?.id ?? 0,
       timezone: shop.timezone ?? 'UTC',
+      // The platform workspace does not begin from a shop customer list, but
+      // shared communications workflows require an explicit empty selection.
+      initialRecipientIds: [],
+      initialRecipientCount: 0,
       invitationUrl: (token: string) => {
         const base = import.meta.env.VITE_SHOP_URL || 'http://localhost:5173';
         const url = new URL('/auth/invitation', base);
