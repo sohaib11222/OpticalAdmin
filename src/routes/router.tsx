@@ -12,6 +12,7 @@ import VerifyPage from "@/pages/foundation/VerifyPage";
 import Home from "@/pages/foundation/Home";
 import Security from "@/pages/foundation/Security";
 import SupportTickets from "@/pages/foundation/SupportTickets";
+import Vista360Subscriptions from "@/pages/foundation/Vista360Subscriptions";
 function Protected({ children }: { children: ReactNode }) {
   const { user, loading, isAuthenticated, error, refresh } = useAuthContext();
   const { t, translateMessage } = useTranslation();
@@ -120,6 +121,14 @@ export default function AppRouter() {
         element={
           <Protected>
             <SupportTickets />
+          </Protected>
+        }
+      />
+      <Route
+        path="/vista360-subscriptions"
+        element={
+          <Protected>
+            <Vista360Subscriptions />
           </Protected>
         }
       />
