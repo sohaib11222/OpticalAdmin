@@ -375,7 +375,7 @@ export function VistaProduct({
     setKey(crypto.randomUUID());
     void request<VistaMetadata>("/integrations/vista/metadata")
       .then((m) => {
-        if (m.data.schema_version !== 3) throw new Error("vista.schemaVersion");
+        if (m.data.schema_version !== 4) throw new Error("vista.schemaVersion");
         setValues(initialVistaValues(product, pub?.mapping));
         setQuantity(0);
         setStep(0);
